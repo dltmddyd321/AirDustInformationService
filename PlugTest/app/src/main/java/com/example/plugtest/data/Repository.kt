@@ -3,6 +3,7 @@ package com.example.plugtest.data
 import com.example.plugtest.AirKoreaApiService
 import com.example.plugtest.BuildConfig
 import com.example.plugtest.KakaoLocalAPiService
+import com.example.plugtest.airquality.MeasuredValue
 import com.example.plugtest.monitoringstation.MonitoringStation
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -34,6 +35,15 @@ object Repository {
             ?.minByOrNull { it.tm ?: Double.MAX_VALUE //Null 값은 자동으로 후순위로 배치
              } //선택한 값들을 비교하여 최소 값을 반환
     }
+
+    suspend fun getLatestAirQualityData(stationName: String): MeasuredValue? =
+        airKoreaApiService
+            .getRealtimeAirQualties(stationName)
+            .body()
+            ?.response
+            ?.body
+            ?.measuredValues
+            ?.firstOrNull()
 
     private val kakaoLocalAPiService: KakaoLocalAPiService by lazy {
         Retrofit.Builder()
