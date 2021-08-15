@@ -4,9 +4,13 @@ import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.View
 import androidx.core.app.ActivityCompat
+import com.example.plugtest.airquality.Grade
+import com.example.plugtest.airquality.MeasuredValue
 import com.example.plugtest.data.Repository
 import com.example.plugtest.databinding.ActivityMainBinding
+import com.example.plugtest.monitoringstation.MonitoringStation
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
@@ -14,6 +18,7 @@ import com.google.android.gms.tasks.CancellationTokenSource
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import java.lang.Exception
 
 class MainActivity : AppCompatActivity() {
 
@@ -30,6 +35,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
+        bindViews()
         initVariables()
         requestLocationPermissions()
     }
@@ -62,6 +68,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun bindViews() {
+        binding.refresh.setOnRefreshListener {
+            fetchAirDustData()
+        }
+    }
+
     private fun initVariables() {
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
         //통합 위치 정보 제공자 클라이언트의 인스턴스 생성
@@ -89,13 +101,77 @@ class MainActivity : AppCompatActivity() {
             //현재 위치 값 데이터를 가지고 있는 토큰을 호출
         ).addOnSuccessListener { location -> //API 호출에 성공한 이후
             scope.launch { //scope 실행 시 관측소에 대한 위도, 경도 값 받아오기
-                val monitoringStation =
-                    Repository.getNearbyMonitoringState(location.latitude,location.longitude)
+                binding.errorDescriptionText.visibility = View.GONE
+                try {
+                    val monitoringStation =
+                        Repository.getNearbyMonitoringState(location.latitude,location.longitude)
 
-                val measuredValue =
-                    Repository.getLatestAirQualityData(monitoringStation!!.stationName!!)
+                    val measuredValue =
+                        Repository.getLatestAirQualityData(monitoringStation!!.stationName!!)
 
-                binding.textView.text = measuredValue.toString()
+                    displayAirQualityData(monitoringStation,measuredValue!!)
+                }catch (exception: Exception) {
+                    binding.errorDescriptionText.visibility = View.VISIBLE
+                    //오류 발생 시 에러 메시지 팝업
+
+                    binding.informationLayout.alpha = 0F
+                    //오류 발생 시 Main 화면 안 보이도록 설정
+                }finally {
+                    binding.progressBar.visibility = View.GONE
+                    binding.refresh.isRefreshing = false
+                    //오류 발생과 상관없이 progressBar는 안 보이게, refresh는 취소
+                }
+            }
+        }
+    }
+
+    @SuppressLint("SetTextI18n")
+    fun displayAirQualityData(monitoringStation: MonitoringStation, measuredValue: MeasuredValue) {
+        binding.informationLayout.animate()
+            .alpha(1F)
+            .start()
+        //Main 화면 Fade-In
+
+        binding.measuringStationName.text = monitoringStation.stationName
+        binding.measuringStationAddressTextView.text = monitoringStation.addr
+
+        (measuredValue.khaiGrade ?: Grade.UNKNOWN).let { grade ->
+            binding.root.setBackgroundResource(grade.colorResId)
+            binding.totalGradeLabelTextView.text = grade.label
+            binding.totalGradeEmojiView.text = grade.emoji
+        }
+
+        with(measuredValue) {
+            binding.fineDustInformation.text =
+                "미세먼지 : ${pm10Value} ㎍/㎥ ${pm10Grade ?: Grade.UNKNOWN.emoji}"
+            //API로 가져온 미세먼지 데이터를 실제 Main 화면에 바인딩
+
+            binding.ultraFineDustInformation.text =
+                "초미세먼지 : ${pm25Value} ㎍/㎥ ${pm25Grade ?: Grade.UNKNOWN.emoji}"
+            //API로 가져온 초미세먼지 데이터를 실제 Main 화면에 바인딩
+
+            with(binding.so2Item) {
+                labelTextView.text = "아황산가스"
+                gradeTextView.text = (so2Grade ?: Grade.UNKNOWN).toString()
+                valueTextView.text = "$so2Value ppm"
+            }
+
+            with(binding.co2Item) {
+                labelTextView.text = "일산화탄소"
+                gradeTextView.text = (coGrade ?: Grade.UNKNOWN).toString()
+                valueTextView.text = coValue
+            }
+
+            with(binding.o3Item) {
+                labelTextView.text = "오존"
+                gradeTextView.text = (o3Grade ?: Grade.UNKNOWN).toString()
+                valueTextView.text = o3Value
+            }
+
+            with(binding.no2Item) {
+                labelTextView.text = "이산화질소"
+                gradeTextView.text = (no2Grade ?: Grade.UNKNOWN).toString()
+                valueTextView.text = no2Value
             }
         }
     }
