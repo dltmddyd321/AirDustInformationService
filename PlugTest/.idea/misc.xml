@@ -3,8 +3,11 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/psych/AndroidStudioProjects/PlugTest/app/src/main/res/drawable/shape_widget_background.xml" value="0.32407407407407407" />
         <entry key="..\:/Users/psych/AndroidStudioProjects/PlugTest/app/src/main/res/layout/activity_main.xml" value="0.33" />
         <entry key="..\:/Users/psych/AndroidStudioProjects/PlugTest/app/src/main/res/layout/view_measured_item.xml" value="0.25" />
+        <entry key="..\:/Users/psych/AndroidStudioProjects/PlugTest/app/src/main/res/layout/widget_simple.xml" value="0.35052083333333334" />
+        <entry key="..\:/Users/psych/AndroidStudioProjects/PlugTest/app/src/main/res/xml/widget_simple_info.xml" value="0.35052083333333334" />
       </map>
     </option>
   </component>

@@ -2,9 +2,11 @@ package com.example.plugtest
 
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
+import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import com.example.plugtest.airquality.Grade
 import com.example.plugtest.airquality.MeasuredValue
@@ -19,6 +21,7 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.lang.Exception
+import java.util.jar.Manifest
 
 class MainActivity : AppCompatActivity() {
 
@@ -60,11 +63,23 @@ class MainActivity : AppCompatActivity() {
             requestCode == REQUEST_ACCESS_LOCATION_PERMISSIONS && grantResults[0] == PackageManager.PERMISSION_GRANTED
         // 위치 권한 사용에 대한 허가값을 코드 값 100과 패키지 매니저의 PERMISSION_GRANTED으로 가져오기
 
-        if(!locationPermissionGranted) {
-            finish()
-            //위치 정보 권한이 허가되지 않았다면 종료
+        val backgroundLocationPermissionGrated =
+            requestCode == REQUEST_BACKGROUND_ACCESS_LOCATION_PERMISSIONS &&
+                    grantResults[0] == PackageManager.PERMISSION_GRANTED
+
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if(!backgroundLocationPermissionGrated) {
+                requestBackgroundLocationPermissions()
+            } else {
+                fetchAirDustData()
+            }
         } else {
-            fetchAirDustData()
+            if(!locationPermissionGranted) {
+                finish()
+                //위치 정보 권한이 허가되지 않았다면 종료
+            } else {
+                fetchAirDustData()
+            }
         }
     }
 
@@ -88,6 +103,17 @@ class MainActivity : AppCompatActivity() {
                 //위치 정보를 받아오기 위한 Location Manifest 설정 추가
             ),
             REQUEST_ACCESS_LOCATION_PERMISSIONS
+        )
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun requestBackgroundLocationPermissions() { //권한 요청 함수
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(
+                android.Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            ),
+            REQUEST_BACKGROUND_ACCESS_LOCATION_PERMISSIONS
         )
     }
 
@@ -178,5 +204,6 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val REQUEST_ACCESS_LOCATION_PERMISSIONS = 100
+        private const val REQUEST_BACKGROUND_ACCESS_LOCATION_PERMISSIONS = 101
     }
 }
